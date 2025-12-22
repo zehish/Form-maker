@@ -1,0 +1,53 @@
+{#
+  Admin dashboard listing all forms.
+
+  Provides links to create new forms, view responses and copy shareable
+  links.  All text is in Persian.
+#}
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}داشبورد مدیریت{% endblock %}
+{% block header %}داشبورد مدیریت{% endblock %}
+{% block content %}
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'formsapp:create_form' %}" class="button">ایجاد فرم جدید</a>
+    </div>
+    {% if forms %}
+        <table>
+            <thead>
+                <tr>
+                    <th>عنوان فرم</th>
+                    <th>لینک اشتراک</th>
+                    <th>پاسخ‌ها</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in forms %}
+                    <tr>
+                        <td>{{ form.title }}</td>
+                        <td style="min-width:200px;">
+                            <div style="display:flex; align-items:center;">
+                                <input id="link-{{ forloop.counter }}" type="text" value="{{ request.scheme }}://{{ request.get_host }}{% url 'formsapp:display_form' form.slug %}" readonly style="flex:1; margin-left:0.5rem;" />
+                                <button type="button" onclick="copyLink('link-{{ forloop.counter }}')" class="button" style="white-space: nowrap;">کپی</button>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{% url 'formsapp:view_responses' form.id %}" class="button">مشاهده پاسخ‌ها</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>هنوز فرمی ایجاد نشده است.</p>
+    {% endif %}
+    <script>
+    function copyLink(id) {
+        const input = document.getElementById(id);
+        input.select();
+        input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value);
+        alert('لینک کپی شد.');
+    }
+    </script>
+{% endblock %}

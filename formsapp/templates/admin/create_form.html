@@ -1,0 +1,128 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}ایجاد فرم جدید{% endblock %}
+{% block header %}ایجاد فرم جدید{% endblock %}
+{% block content %}
+    <form method="post" onsubmit="return prepareFormData();">
+        {% csrf_token %}
+        <div class="field">
+            <label for="title">عنوان فرم</label>
+            <input type="text" id="title" name="title" placeholder="عنوان فرم را وارد کنید" required />
+        </div>
+        <div id="questions-container"></div>
+        <button type="button" class="button" onclick="addQuestion();">افزودن پرسش</button>
+        <input type="hidden" name="form_data" id="form-data" />
+        <div style="margin-top:1rem;">
+            <button type="submit" class="button">ذخیره فرم</button>
+        </div>
+    </form>
+    <script>
+let questions = [];
+
+function addQuestion() {
+    const index = questions.length;
+    const q = { text: '', type: 'text', choices: [] };
+    questions.push(q);
+    renderQuestions();
+}
+
+function addChoice(qIndex) {
+    questions[qIndex].choices.push('');
+    renderQuestions();
+}
+
+function removeChoice(qIndex, cIndex) {
+    questions[qIndex].choices.splice(cIndex, 1);
+    renderQuestions();
+}
+
+function removeQuestion(qIndex) {
+    questions.splice(qIndex, 1);
+    renderQuestions();
+}
+
+function updateQuestionText(qIndex, value) {
+    questions[qIndex].text = value;
+}
+
+function updateQuestionType(qIndex, value) {
+    questions[qIndex].type = value;
+    if (value === 'text') {
+        questions[qIndex].choices = [];
+    }
+    renderQuestions();
+}
+
+function updateChoiceText(qIndex, cIndex, value) {
+    questions[qIndex].choices[cIndex] = value;
+}
+
+function renderQuestions() {
+    const container = document.getElementById('questions-container');
+    container.innerHTML = '';
+    questions.forEach((q, qIndex) => {
+        const div = document.createElement('div');
+        div.className = 'question';
+        div.innerHTML = `
+            <div class="question-header">
+                <strong>پرسش ${qIndex + 1}</strong>
+                <button type="button" onclick="removeQuestion(${qIndex});" style="background:#e74c3c;color:#fff;border:none;border-radius:3px;padding:0.2rem 0.5rem;cursor:pointer;">حذف</button>
+            </div>
+            <div class="field">
+                <label>متن پرسش</label>
+                <input type="text" value="${escapeHtml(q.text)}" oninput="updateQuestionText(${qIndex}, this.value)" required />
+            </div>
+            <div class="field">
+                <label>نوع پرسش</label>
+                <select onchange="updateQuestionType(${qIndex}, this.value)">
+                    <option value="text" ${q.type === 'text' ? 'selected' : ''}>پاسخ کوتاه</option>
+                    <option value="mc" ${q.type === 'mc' ? 'selected' : ''}>چند گزینه‌ای</option>
+                </select>
+            </div>
+        `;
+        if (q.type === 'mc') {
+            const choicesDiv = document.createElement('div');
+            choicesDiv.className = 'choices';
+            q.choices.forEach((choice, cIndex) => {
+                const choiceDiv = document.createElement('div');
+                choiceDiv.className = 'choice-input';
+                choiceDiv.innerHTML = `
+                    <input type="text" value="${escapeHtml(choice)}" oninput="updateChoiceText(${qIndex}, ${cIndex}, this.value)" placeholder="گزینه ${cIndex + 1}" />
+                    <button type="button" onclick="removeChoice(${qIndex}, ${cIndex});">×</button>
+                `;
+                choicesDiv.appendChild(choiceDiv);
+            });
+            const addChoiceBtn = document.createElement('button');
+            addChoiceBtn.type = 'button';
+            addChoiceBtn.className = 'button';
+            addChoiceBtn.textContent = 'افزودن گزینه';
+            addChoiceBtn.style.marginTop = '0.5rem';
+            addChoiceBtn.onclick = function() { addChoice(qIndex); };
+            choicesDiv.appendChild(addChoiceBtn);
+            div.appendChild(choicesDiv);
+        }
+        container.appendChild(div);
+    });
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function prepareFormData() {
+    // Validate title and at least one question
+    if (questions.length === 0) {
+        alert('لطفاً حداقل یک پرسش اضافه کنید.');
+        return false;
+    }
+    // Remove empty choices
+    questions.forEach(q => {
+        if (q.type === 'mc') {
+            q.choices = q.choices.filter(c => c.trim() !== '');
+        }
+    });
+    document.getElementById('form-data').value = JSON.stringify({ questions: questions });
+    return true;
+}
+    </script>
+{% endblock %}

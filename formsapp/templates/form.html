@@ -1,0 +1,31 @@
+{#
+  Public form display template.
+
+  Renders a form for respondents to answer.  All visible text is in
+  English.  At the bottom of the page a credit line displays "Zanjan
+  University" as requested.
+#}
+{% extends 'base_public.html' %}
+{% block title %}{{ form.title }}{% endblock %}
+{% block header %}{{ form.title }}{% endblock %}
+{% block content %}
+    <form method="post">
+        {% csrf_token %}
+        {% for question in form.questions.all %}
+            <div class="field">
+                <label for="q{{ question.id }}">{{ question.text }}</label>
+                {% if question.question_type == 'text' %}
+                    <input type="text" id="q{{ question.id }}" name="question_{{ question.id }}" placeholder="Your answer" required />
+                {% else %}
+                    <select id="q{{ question.id }}" name="question_{{ question.id }}" required>
+                        <option value="" disabled selected>Choose...</option>
+                        {% for choice in question.choices.all %}
+                            <option value="{{ choice.id }}">{{ choice.text }}</option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="button">Submit</button>
+    </form>
+{% endblock %}

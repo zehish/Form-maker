@@ -1,0 +1,34 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}پاسخ‌های {{ form.title }}{% endblock %}
+{% block header %}پاسخ‌های {{ form.title }}{% endblock %}
+{% block content %}
+    <div style="margin-bottom:1rem;">
+        <a href="{% url 'formsapp:dashboard' %}" class="button">بازگشت به داشبورد</a>
+        <a href="{% url 'formsapp:export_csv' form.id %}" class="button">دریافت CSV</a>
+        <a href="{% url 'formsapp:export_xlsx' form.id %}" class="button">دریافت Excel</a>
+    </div>
+    {% if table %}
+        <table>
+            <thead>
+                <tr>
+                    <th>زمان ارسال</th>
+                    {% for q in questions %}
+                        <th>{{ q.text }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for response, row in table %}
+                    <tr>
+                        <td>{{ response.submitted_at|date:"Y-m-d H:i" }}</td>
+                        {% for cell in row %}
+                            <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>هیچ پاسخی برای این فرم ثبت نشده است.</p>
+    {% endif %}
+{% endblock %}
