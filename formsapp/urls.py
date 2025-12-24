@@ -33,5 +33,5 @@ urlpatterns = [
 
     # Login and logout using Django's built-in auth views but with custom templates
     path('admin/login/', views.custom_login, name='login'),
-    path('admin/logout/', auth_views.LogoutView.as_view(next_page='formsapp:login'), name='logout'),
+    path('admin/logout/', views.custom_logout, name='logout'),
 ]

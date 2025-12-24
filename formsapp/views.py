@@ -14,7 +14,7 @@ import uuid
 import csv
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -52,6 +52,12 @@ def custom_login(request: HttpRequest) -> HttpResponse:
 
     return render(request, 'admin/login.html', {'error': error})
 
+@login_required(login_url='formsapp:login')
+def custom_logout(request: HttpRequest) -> HttpResponse:
+    translation.activate('fa')
+    logout(request)
+    messages.success(request, 'با موفقیت خارج شدید.')
+    return redirect('formsapp:login')
 
 @login_required(login_url='formsapp:login')
 def dashboard(request: HttpRequest) -> HttpResponse:
