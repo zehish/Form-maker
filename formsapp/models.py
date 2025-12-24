@@ -24,6 +24,14 @@ class Form(models.Model):
     slug = models.SlugField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     published = models.BooleanField(default=False)
+    # A short description shown beneath the form title for respondents.  This field
+    # can be left blank and is optional.  Administrators can use it to provide
+    # additional context such as instructions or the purpose of the form.
+    description = models.TextField(blank=True, null=True)
+    # When a form is archived the administrative interface will hide its
+    # responses.  Responses remain in the database but are no longer accessible
+    # through the UI.  Administrators can toggle this flag via the dashboard.
+    archived = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return self.title

@@ -27,6 +27,10 @@ urlpatterns = [
     path('admin/form/<int:form_id>/export/csv/', views.export_responses_csv, name='export_csv'),
     path('admin/form/<int:form_id>/export/xlsx/', views.export_responses_xlsx, name='export_xlsx'),
 
+    # Form management actions
+    path('admin/form/<int:form_id>/delete/', views.delete_form, name='delete_form'),
+    path('admin/form/<int:form_id>/archive/', views.archive_form, name='archive_form'),
+
     # Login and logout using Django's built-in auth views but with custom templates
     path('admin/login/', views.custom_login, name='login'),
     path('admin/logout/', auth_views.LogoutView.as_view(next_page='formsapp:login'), name='logout'),

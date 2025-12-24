@@ -9,6 +9,10 @@
             <label for="title">عنوان فرم</label>
             <input type="text" id="title" name="title" placeholder="عنوان فرم را وارد کنید" required />
         </div>
+        <div class="field">
+            <label for="description">توضیحات</label>
+            <textarea id="description" name="description" rows="3" placeholder="توضیحات کوتاه درباره فرم (اختیاری)"></textarea>
+        </div>
         <div id="questions-container"></div>
         <button type="button" class="button" onclick="addQuestion();">افزودن پرسش</button>
         <input type="hidden" name="form_data" id="form-data" />

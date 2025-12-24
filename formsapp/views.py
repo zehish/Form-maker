@@ -5,7 +5,7 @@ This module implements both the public facing views used by respondents to
 answer forms and the administrative interface used by the site owner to
 create and manage forms.  The administrative interface is intentionally
 simple and provided entirely in Persian.  Public forms are presented in
-English with a footer credit to Zanjan University.
+English with a footer credit to the University of Zanjan.
 """
 from __future__ import annotations
 
@@ -81,8 +81,11 @@ def create_form(request: HttpRequest) -> HttpResponse:
     """
     translation.activate('fa')
     if request.method == 'POST':
+        # Retrieve the form title and optional description from the POST data
         title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
         form_data = request.POST.get('form_data')
+        # Both the title and question payload are required to create a form
         if not title or not form_data:
             messages.error(request, 'عنوان و داده‌های فرم الزامی هستند.')
             return redirect('formsapp:create_form')
@@ -91,22 +94,27 @@ def create_form(request: HttpRequest) -> HttpResponse:
         except json.JSONDecodeError:
             messages.error(request, 'داده‌های ارسال شده نامعتبر هستند.')
             return redirect('formsapp:create_form')
-        # Generate a unique slug using a combination of title and random suffix
+        # Generate a unique slug using a combination of title and incremental suffix
         base_slug = slugify(title)
-        slug = base_slug
-        # Ensure the slug is unique
+        slug = base_slug or uuid.uuid4().hex[:8]
         counter = 1
         while Form.objects.filter(slug=slug).exists():
             slug = f"{base_slug}-{counter}"
             counter += 1
-        # Create the form
-        form_obj = Form.objects.create(title=title, slug=slug, published=True)
-        # Iterate through questions and create them
+        # Create the form record including the optional description
+        form_obj = Form.objects.create(
+            title=title,
+            slug=slug,
+            published=True,
+            description=description,
+        )
+        # Iterate through questions and persist them
         questions_data = data.get('questions', [])
         for idx, q in enumerate(questions_data):
             q_text = q.get('text', '').strip()
             q_type = q.get('type')
             choices = q.get('choices', [])
+            # Skip invalid questions
             if not q_text or q_type not in (Question.TEXT, Question.MULTIPLE_CHOICE):
                 continue
             question = Question.objects.create(
@@ -115,6 +123,7 @@ def create_form(request: HttpRequest) -> HttpResponse:
                 question_type=q_type,
                 order=idx,
             )
+            # Create choices for multiple choice questions
             if q_type == Question.MULTIPLE_CHOICE:
                 for choice_text in choices:
                     ct = choice_text.strip()
@@ -123,6 +132,44 @@ def create_form(request: HttpRequest) -> HttpResponse:
         messages.success(request, 'فرم با موفقیت ایجاد شد.')
         return redirect('formsapp:dashboard')
     return render(request, 'admin/create_form.html')
+
+
+@login_required(login_url='formsapp:login')
+def delete_form(request: HttpRequest, form_id: int) -> HttpResponse:
+    """
+    Permanently delete a form and all of its related objects.
+
+    This action removes the form, its questions, choices, responses and answers
+    from the database.  A success message is displayed and the user is
+    redirected back to the dashboard.  Use with caution as this operation
+    cannot be undone.
+    """
+    translation.activate('fa')
+    form_obj = get_object_or_404(Form, id=form_id)
+    form_title = form_obj.title
+    form_obj.delete()
+    messages.success(request, f'فرم "{form_title}" با موفقیت حذف شد.')
+    return redirect('formsapp:dashboard')
+
+
+@login_required(login_url='formsapp:login')
+def archive_form(request: HttpRequest, form_id: int) -> HttpResponse:
+    """
+    Toggle the archived state of a form.
+
+    When a form is archived its responses become inaccessible via the
+    administrative interface.  Toggling the flag back will restore access
+    to the responses.  A message is shown indicating the new state.
+    """
+    translation.activate('fa')
+    form_obj = get_object_or_404(Form, id=form_id)
+    form_obj.archived = not form_obj.archived
+    form_obj.save()
+    if form_obj.archived:
+        messages.success(request, f'فرم "{form_obj.title}" بایگانی شد و پاسخ‌های آن دیگر قابل مشاهده نیستند.')
+    else:
+        messages.success(request, f'فرم "{form_obj.title}" از حالت بایگانی خارج شد و پاسخ‌های آن دوباره قابل مشاهده هستند.')
+    return redirect('formsapp:dashboard')
 
 
 def display_form(request: HttpRequest, slug: str) -> HttpResponse:
@@ -180,6 +227,13 @@ def view_responses(request: HttpRequest, form_id: int) -> HttpResponse:
     """
     translation.activate('fa')
     form_obj = get_object_or_404(Form, id=form_id)
+    # If the form has been archived, do not display its responses
+    if form_obj.archived:
+        messages.warning(
+            request,
+            'این فرم بایگانی شده است و پاسخ‌های آن قابل مشاهده نیستند.'
+        )
+        return redirect('formsapp:dashboard')
     responses = form_obj.responses.all().order_by('-submitted_at')
     questions = list(form_obj.questions.all())
     # Build a table of answers keyed by response
@@ -210,6 +264,10 @@ def export_responses_csv(request: HttpRequest, form_id: int) -> HttpResponse:
     choice text or the free text answer.
     """
     form_obj = get_object_or_404(Form, id=form_id)
+    # Prevent exporting archived forms
+    if form_obj.archived:
+        messages.warning(request, 'خروجی گرفتن از فرم بایگانی شده امکان‌پذیر نیست.')
+        return redirect('formsapp:view_responses', form_id=form_id)
     questions = list(form_obj.questions.all())
     responses = form_obj.responses.all().order_by('submitted_at')
     # Create the CSV file in memory
@@ -241,6 +299,10 @@ def export_responses_xlsx(request: HttpRequest, form_id: int) -> HttpResponse:
     message is displayed prompting the administrator to install it.
     """
     form_obj = get_object_or_404(Form, id=form_id)
+    # Prevent exporting archived forms
+    if form_obj.archived:
+        messages.warning(request, 'خروجی گرفتن از فرم بایگانی شده امکان‌پذیر نیست.')
+        return redirect('formsapp:view_responses', form_id=form_id)
     questions = list(form_obj.questions.all())
     responses_qs = form_obj.responses.all().order_by('submitted_at')
     try:

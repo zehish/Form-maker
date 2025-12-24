@@ -3,21 +3,27 @@
 {% block title %}داشبورد مدیریت{% endblock %}
 {% block header %}داشبورد مدیریت{% endblock %}
 {% block content %}
-    <div style="margin-bottom: 1rem;">
+    <div style="margin-bottom: 1rem; display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
         <a href="{% url 'formsapp:create_form' %}" class="button">ایجاد فرم جدید</a>
+        {% if forms %}
+        <input type="text" id="search-input" placeholder="جستجوی عنوان فرم..." style="padding:0.5rem; flex:1; min-width:200px; border:1px solid #ccc; border-radius:4px;" />
+        {% endif %}
     </div>
     {% if forms %}
-        <table>
+        <div class="table-wrap">
+        <table id="forms-table">
             <thead>
                 <tr>
                     <th>عنوان فرم</th>
                     <th>لینک اشتراک</th>
                     <th>پاسخ‌ها</th>
+                    <th>وضعیت</th>
+                    <th>عملیات</th>
                 </tr>
             </thead>
             <tbody>
                 {% for form in forms %}
-                    <tr>
+                    <tr data-title="{{ form.title|lower }}">
                         <td>{{ form.title }}</td>
                         <td style="min-width:200px;">
                             <div style="display:flex; align-items:center;">
@@ -26,12 +32,34 @@
                             </div>
                         </td>
                         <td>
-                            <a href="{% url 'formsapp:view_responses' form.id %}" class="button">مشاهده پاسخ‌ها</a>
+                            {% if form.archived %}
+                                <span style="color:#999;">بایگانی شده ({{ form.responses.count }})</span>
+                            {% else %}
+                                <a href="{% url 'formsapp:view_responses' form.id %}" class="button">
+                                    مشاهده پاسخ‌ها ({{ form.responses.count }})
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if form.archived %}
+                                بایگانی شده
+                            {% else %}
+                                فعال
+                            {% endif %}
+                        </td>
+                        <td style="white-space:nowrap;">
+                            {% if form.archived %}
+                                <a href="{% url 'formsapp:archive_form' form.id %}" class="button" style="background-color:#8e44ad;">لغو بایگانی</a>
+                            {% else %}
+                                <a href="{% url 'formsapp:archive_form' form.id %}" class="button" style="background-color:#f39c12;">بایگانی</a>
+                            {% endif %}
+                            <a href="{% url 'formsapp:delete_form' form.id %}" class="button" style="background-color:#e74c3c;" onclick="return confirm('تمام اظلاعات مربوط به این فرم و پاسخ‌هاحذف خواهد شد. آیا از حذف این فرم اطمینان دارید؟');">حذف</a>
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     {% else %}
         <p>هنوز فرمی ایجاد نشده است.</p>
     {% endif %}
@@ -42,6 +70,22 @@
         input.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(input.value);
         alert('لینک کپی شد.');
+    }
+    // Simple client-side search to filter forms by title
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#forms-table tbody tr');
+            rows.forEach(row => {
+                const title = row.getAttribute('data-title');
+                if (!filter || (title && title.indexOf(filter) > -1)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
     }
     </script>
 {% endblock %}
