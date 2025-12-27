@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-please-change-this-secret-key-to-your-own'
 DEBUG = True
 
 # Allow all hosts for development.  In production you should specify your domain.
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "192.168.202.49"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "192.168.202.49","qs.znu.ac.ir"]
 
 # Application definition
 
